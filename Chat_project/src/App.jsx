@@ -60,6 +60,15 @@ function App() {
   }
 
   useEffect(() => {
+    console.log('useEffect scroll up!');
+    window.scrollTo({
+      top: document.body.scrollHeight,
+      left: 0,
+      behavior: "smooth"
+    })
+  }, [messages]);
+
+  useEffect(() => {
     console.log('useEffect called!');
     socket?.on('connect', onConnected);
     socket?.on('disconnect', onDisconnected);
