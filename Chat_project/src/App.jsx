@@ -1,13 +1,19 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import reactLogo from './assets/react.svg'
 import viteLogo from '/vite.svg'
 import './App.css'
 // ES modules
 import { io } from "socket.io-client";
 function App() {
-  const [count, setCount] = useState(0)
+  const [count, setCount] = useState(0);
+
+  const [isConnected, setIsConnected] = useState(false);
+
+  const [messages, setMessages] = useState([]);
 
   const [username, setUsername] = useState('');
+
+  const [userInput, setUserInput] = useState('');
 
   const [socket, setSocket] = useState(null);
 
@@ -23,10 +29,56 @@ function App() {
     setSocket(_socket);
   }
 
+
+  
   function disconnectToChatServer(){
     console.log('disconnectToChatServer');
     socket?.disconnect();
   }
+
+  function onConnected(){
+    console.log('front - onConnected');
+    setIsConnected(true);
+  }
+
+  function onDisconnected(){
+    console.log('front - onDisconnected');
+    setIsConnected(false);
+  }
+
+  function onMessageReceived(msg){
+    console.log('front - onMessageReceived)');
+    console.log(msg);
+    setMessages(previous => [...previous, msg]);
+  }
+
+  function sendMessageToChatServer(){
+    console.log(`front - sendMessageToChatServer input : ${userInput}`);
+    socket?.emit("new message", {username: username , message : userInput }, (response) => {
+      console.log(response); // "got it"
+    });
+  }
+
+  useEffect(() => {
+    console.log('useEffect called!');
+    socket?.on('connect', onConnected);
+    socket?.on('disconnect', onDisconnected);
+
+    socket?.on('new message', onMessageReceived);
+
+    return () => {
+      console.log('useEffect clean up function called!');
+      socket?.off('connect', onConnected);
+      socket?.off('disconnect', onDisconnected);
+      socket?.off('new message', onMessageReceived);
+    };
+  }, [socket]);
+
+  const messageList = messages.map((aMsg, index) => 
+    <li key={index}>
+      {aMsg.username} : {aMsg.message}
+    </li>
+  )
 
   return (
     <>
@@ -46,6 +98,7 @@ function App() {
       </div>
 
       <h1>유저 : {username}</h1>
+      <h2>현재 접속상태 : {isConnected ? "접속중" : "미접속"}</h2>
       <div className = 'card'>
         <input value = {username} onChange = { e => setUsername(e.target.value)} />
         <button onClick={() => connectToChatServer()}>
@@ -56,9 +109,17 @@ function App() {
         </button>
       </div>
 
-      <p className="read-the-docs">
-        Click on the Vite and React logos to learn more
-      </p>
+      <div className = 'card'>
+        <input value = {userInput} onChange = { e => setUserInput(e.target.value)} />
+        <button onClick={() => sendMessageToChatServer()}>
+           보내기
+        </button>
+      </div>
+
+      <ul>
+        {messageList}
+      </ul>
+      
     </>
   )
 }
